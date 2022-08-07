@@ -1,129 +1,162 @@
+import java.util.LinkedList;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 
 public class ConwayController {
 
     @FXML
-    private Canvas canvas;
-    
-	private boolean start = true;
-	private static int[][] currentColor = new int[10][10];
-	private static int[][] nextColor = new int[10][10];
+    private Canvas canvas; 
+    GraphicsContext graphicsContext;
+	private boolean firstButtonPress = true;
+	private final int cellMatrixSize = 10;
+	private int[][] currentCells = new int[cellMatrixSize][cellMatrixSize];
+	private int[][] nextGenerationCells = new int[cellMatrixSize][cellMatrixSize];
 	
-	/* adds up living neighbors in the array, and returns livingNeighbors */
-	public static int checkValidNeighbors(int i, int j) {
-    	int livingNeighbors = 0;
-    	
-    	/* gets data from neighbors */
-    	for(int k = i - 1; k < i+2; k++) {
-    		if(k >= 0 && k <=9) {
-    			for(int l = j - 1; l < j + 2; l++) {
-    				if(l >= 0 && l <= 9) {
-    					/* not to count himself as a living neighbor */
-    					if((currentColor[k][l] == 1) && !((k == i) && (l == j)))
-               				livingNeighbors += 1;		
-    				}
-       			}
+	public boolean isAlive(int cell) {
+		if(cell == 1)
+			return true;
+		return false;
+	}
+	
+	public boolean cellIndiciesAreInBounds(int neighborRow, int neighborColumn) {
+		if(neighborRow > 9 || neighborColumn > 9 || neighborRow < 0 || neighborColumn < 0)
+			return false;
+		return true;
+	}
+	
+	public boolean neighbouringCellIsAlive(int neighborRow, int neighborColumn) {
+		return cellIndiciesAreInBounds(neighborRow, neighborColumn) && isAlive(currentCells[neighborRow][neighborColumn]);
+	}
+	
+	public  int verifyLivingNeighbors(int cellRow, int cellColumn) {
+    	int livingNeighbouringCells = 0;
+    	for(int neighborRow = cellRow - 1; neighborRow <= cellRow + 1; neighborRow++) {
+    		for(int neighborColumn = cellColumn - 1; neighborColumn <= cellColumn + 1; neighborColumn++) {
+    			if(neighbouringCellIsAlive(neighborRow, neighborColumn) && !(cellRow == neighborRow && cellColumn == neighborColumn)) { // do something here.
+    				livingNeighbouringCells++;
+    			}
     		}
-   		}
-		
-    	return livingNeighbors;
+    	}
+    	return livingNeighbouringCells;
     }
-	                                                    
-	/* decides by the state of the next color by it's current color and the neighbors color */
-    public static void updateNextColor() {
-    	int livingNeighbors = 0;
-    	// calculate next colors 
-		for(int i = 0; i < 10; i++) {
-			livingNeighbors = 0;
-			for(int j = 0; j < 10; j++) {
-				livingNeighbors = checkValidNeighbors(i, j);
+	                      
+	public boolean cellHasExactlyThreeLivingNeighbors(int livingNeighbouringCells){
+		if(livingNeighbouringCells == 3)
+			return true;
+		return false;
+	}
+	
+	public void setCellToLiveNextGeneration(int cellRow, int cellColumn) {
+		nextGenerationCells[cellRow][cellColumn] = 1;
+	}
+	
+	public void setCellToDieNextGeneration(int cellRow, int cellColumn) {
+		nextGenerationCells[cellRow][cellColumn] = 0;
+	}
+	
+	public boolean tooLittleLivingNeighbors(int livingNeighbouringCells) {
+		if(livingNeighbouringCells <= 1)
+			return true;
+		return false;
+	}
+	
+	public boolean tooManyLivingNeighbors(int livingNeighbouringCells) {
+		if(livingNeighbouringCells >= 4)
+			return true;
+		return false;
+	}
+	
+	public boolean cellHasTwoOrThreeLivingNeighbors(int livingNeighbouringCells) {
+		if(livingNeighbouringCells == 3 || livingNeighbouringCells == 2)
+			return true;
+		return false;
+	}
+	
+	public void updateCurrentCellsToNextGeneration() {
+		for(int cellRow = 0; cellRow < cellMatrixSize; cellRow++) {
+			for(int cellColumn = 0; cellColumn < cellMatrixSize; cellColumn++)
+				currentCells[cellRow][cellColumn] = nextGenerationCells[cellRow][cellColumn];
+		}
+	}
+	
+    public void updateNextGenerationCells() {
+    	int currentCell, livingNeighbouringCells;
+    	
+    	for(int currentCellsRow = 0; currentCellsRow < cellMatrixSize; currentCellsRow++) {
+    		for(int currentCellsColumn = 0; currentCellsColumn < cellMatrixSize; currentCellsColumn++) {
+    			currentCell = currentCells[currentCellsRow][currentCellsColumn];
+    			livingNeighbouringCells = verifyLivingNeighbors(currentCellsRow, currentCellsColumn);
+			
+    			// if dead and surrounded by 3 neighbors -> live next generation
+				if(!isAlive(currentCell) && cellHasExactlyThreeLivingNeighbors(livingNeighbouringCells))
+					setCellToLiveNextGeneration(currentCellsRow,currentCellsColumn);
 				
-				// if dead and surrounded by 3 neighbors -> live next generation
-				if((currentColor[i][j] == 0) && (livingNeighbors == 3))
-    				nextColor[i][j] = 1;
-				
-    			// if alive 
-    			if(currentColor[i][j] == 1) {
-    				// if too little or too many neighbors -> death next generation 
-    				if((livingNeighbors <= 1) || (livingNeighbors >= 4))
-    					nextColor[i][j] = 0;
-    				// if 2 or 3 neighbors -> live next generation 
-    				if(livingNeighbors == 3 || livingNeighbors == 2)
-    					nextColor[i][j] = 1;
+    			if(isAlive(currentCell)) {
+    				if(tooLittleLivingNeighbors(livingNeighbouringCells) || tooManyLivingNeighbors(livingNeighbouringCells))
+    					setCellToDieNextGeneration(currentCellsRow, currentCellsColumn);
+    				if(cellHasTwoOrThreeLivingNeighbors(livingNeighbouringCells))
+    					setCellToLiveNextGeneration(currentCellsRow, currentCellsColumn);
     			}
 			}
 		}    
+	
+    	updateCurrentCellsToNextGeneration();
 		
-		/* puts the next colors into correntColor for the next coloring */
-		for(int i = 0; i < 10; i++) {
-			for(int j = 0; j < 10; j++) {
-				currentColor[i][j] = nextColor[i][j];
-			}
+    }
+    
+    public void initializeLivingAndDeadCellsRandomly() {
+    	for(int cellRow = 0; cellRow < cellMatrixSize; cellRow++) {
+			for(int cellColumn = 0; cellColumn < cellMatrixSize; cellColumn++) 
+				currentCells[cellRow][cellColumn] = (int)Math.round(Math.random());
 		}
-		
+    } 
+    
+    public void strokeAndFillCell(int cellXCoordinate, int cellYCoordinate, int cellSize) {
+    	graphicsContext.strokeRect(cellXCoordinate, cellYCoordinate, cellSize, cellSize);
+    	graphicsContext.fillRect(cellXCoordinate, cellYCoordinate, cellSize, cellSize);
+    }
+    
+    public void colorCellBlack(int cellXCoordinate, int cellYCoordinate, int cellSize) {
+    	graphicsContext.setFill(Color.BLACK);
+    	strokeAndFillCell(cellXCoordinate, cellYCoordinate,cellSize);
+    }
+    
+    public void colorCellWhite(int cellXCoordinate, int cellYCoordinate, int cellSize) {
+    	graphicsContext.setFill(Color.WHITE);
+    	strokeAndFillCell(cellXCoordinate, cellYCoordinate,cellSize);
+    }
+    
+    public void repaint(int cellSize) {
+    	for(int cellXCoordinate = 0, cellRow = 0; cellXCoordinate < canvas.getWidth(); cellXCoordinate += cellSize, cellRow++) {
+    		for(int cellYCoordinate = 0, cellColumn = 0; cellYCoordinate < canvas.getHeight(); cellYCoordinate += cellSize, cellColumn++) {        			    
+				if(isAlive(currentCells[cellRow][cellColumn])) 
+					colorCellBlack(cellXCoordinate, cellYCoordinate, cellSize);	
+    			else 
+					colorCellWhite(cellXCoordinate, cellYCoordinate, cellSize);		
+    		}
+    	}
+		updateNextGenerationCells();		
     }
     
     @FXML
     void NextGenerationButtonPressed(ActionEvent event) {
    
-    	GraphicsContext gc = canvas.getGraphicsContext2D();
+    	graphicsContext = canvas.getGraphicsContext2D();	
+    	int cellSize = (int)canvas.getHeight()/cellMatrixSize;
     	
-    	gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-    	
-    	int livingNeighbors = 0, k = 0, l = 0;
-    	
-    	/* if it's the first button push, initialize currentColor to random values */ 
-    	if(start == true) {
-    		start = false;
-    		/* initializes currentColor to random 1s and 0s */
-    		for(int i = 0; i < 10; i++) {
-    			int j = 0;
-    			for(j = 0; j < 10; j++) 
-        			currentColor[i][j] = (int)Math.round(Math.random());
-    		}
-    		/* draws the rectangles according to currentColor data */
-    		for(int i = 0; i < canvas.getWidth(); i += canvas.getWidth()/10, k++) {
-    			l = 0;
-        		for(int j = 0; j < canvas.getHeight(); j += canvas.getWidth()/10, l++) {
-        			    				
-    				if(currentColor[k][l] == 1) {
-        				gc.setFill(Color.BLACK);	
-        			} else {
-        				gc.setFill(Color.WHITE);
-        			}
-    				
-    				gc.fillRect(i, j, canvas.getWidth()/10, canvas.getWidth()/10);
-        			gc.strokeRect(i, j, canvas.getWidth()/10, canvas.getWidth()/10);
-        		}
-        	}
-    		
-    		updateNextColor();		
+    	if(firstButtonPress == true) {
+    		firstButtonPress = false;
+    		initializeLivingAndDeadCellsRandomly();
     	}
-    	/* if the currentColor is already initialized */ 
-    	else {
-    		
-    		for(int i = 0; i < canvas.getWidth(); i += canvas.getWidth()/10, k++) {
-    			l = 0;
-        		for(int j = 0; j < canvas.getHeight(); j += canvas.getWidth()/10, l++) {
-        			    				
-    				if(currentColor[k][l] == 1) {
-        				gc.setFill(Color.BLACK);	
-        			} else {
-        				gc.setFill(Color.WHITE);
-        			}
-    				
-    				gc.fillRect(i, j, canvas.getWidth()/10, canvas.getWidth()/10);
-        			gc.strokeRect(i, j, canvas.getWidth()/10, canvas.getWidth()/10);
-        		}
-        	}
-    		
-    		updateNextColor();		
-    	}
+    	
+    	repaint(cellSize);
+    	
     }
 
 }
