@@ -93,9 +93,8 @@ public class ConwayController {
     			currentCell = currentCells[currentCellsRow][currentCellsColumn];
     			livingNeighbouringCells = verifyLivingNeighbors(currentCellsRow, currentCellsColumn);
 			
-    			// if dead and surrounded by 3 neighbors -> live next generation
-				if(!isAlive(currentCell) && cellHasExactlyThreeLivingNeighbors(livingNeighbouringCells))
-					setCellToLiveNextGeneration(currentCellsRow,currentCellsColumn);
+			if(!isAlive(currentCell) && cellHasExactlyThreeLivingNeighbors(livingNeighbouringCells))
+				setCellToLiveNextGeneration(currentCellsRow,currentCellsColumn);
 				
     			if(isAlive(currentCell)) {
     				if(tooLittleLivingNeighbors(livingNeighbouringCells) || tooManyLivingNeighbors(livingNeighbouringCells))
@@ -103,11 +102,10 @@ public class ConwayController {
     				if(cellHasTwoOrThreeLivingNeighbors(livingNeighbouringCells))
     					setCellToLiveNextGeneration(currentCellsRow, currentCellsColumn);
     			}
-			}
-		}    
-	
-    	updateCurrentCellsToNextGeneration();
-		
+		}
+	}    
+	    
+    	updateCurrentCellsToNextGeneration();	
     }
     
     public void initializeLivingAndDeadCellsRandomly() {
@@ -135,13 +133,13 @@ public class ConwayController {
     public void repaint(int cellSize) {
     	for(int cellXCoordinate = 0, cellRow = 0; cellXCoordinate < canvas.getWidth(); cellXCoordinate += cellSize, cellRow++) {
     		for(int cellYCoordinate = 0, cellColumn = 0; cellYCoordinate < canvas.getHeight(); cellYCoordinate += cellSize, cellColumn++) {        			    
-				if(isAlive(currentCells[cellRow][cellColumn])) 
-					colorCellBlack(cellXCoordinate, cellYCoordinate, cellSize);	
+			if(isAlive(currentCells[cellRow][cellColumn])) 
+				colorCellBlack(cellXCoordinate, cellYCoordinate, cellSize);	
     			else 
-					colorCellWhite(cellXCoordinate, cellYCoordinate, cellSize);		
+				colorCellWhite(cellXCoordinate, cellYCoordinate, cellSize);		
     		}
     	}
-		updateNextGenerationCells();		
+	updateNextGenerationCells();		
     }
     
     @FXML
